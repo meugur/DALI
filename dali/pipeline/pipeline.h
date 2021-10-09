@@ -306,6 +306,17 @@ class DLL_PUBLIC Pipeline {
   }
 
   /**
+   * @brief Obtains the profile statistics
+   */
+  DLL_PUBLIC ProfileData GetProfileData() {
+    if (executor_) {
+      return executor_->GetProfileData();
+    } else {
+      return {};
+    }
+  }
+
+  /**
    * @brief Set queue sizes for Pipeline using Separated Queues
    *
    * Must be called before Build()

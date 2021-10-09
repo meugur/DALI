@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <condition_variable>
 #include <iterator>
+#include <chrono>
 #include <mutex>
 #include <set>
 #include <unordered_map>
@@ -332,7 +333,17 @@ void Executor<WorkspacePolicy, QueuePolicy>::RunHelper(OpNode &op_node, Workspac
                  "always return false.");
   }
 
+  auto start = std::chrono::system_clock::now();
   op.Run(ws);
+  auto end = std::chrono::system_clock::now();
+
+  std::chrono::duration<double> elapsed_seconds = end - start;
+  if (op_times.find(op.name()) == op_times.end()) {
+    op_times[op.name()] = std::make_pair(1, elapsed_seconds);
+  } else {
+    auto data = op_times[op.name()];
+    op_times[op.name()] = std::make_pair(data.first + 1, data.second + elapsed_seconds);
+  }
 
   for (int i : empty_layout_in_idxs) {
     if (ws.template InputIsType<CPUBackend>(i)) {

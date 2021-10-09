@@ -1113,6 +1113,22 @@ py::dict ExecutorMetaToDict(const ExecutorMetaMap &meta) {
   return d;
 }
 
+py::list ProfileDataToDict(const ProfileData &data) {
+  py::list l;
+  for (const auto &val : data) {
+    auto name = val.first;
+    auto profile = val.second;
+
+    py::dict d;
+    d["name"] = name.c_str();
+    d["count"] = profile.first;
+    d["time"] = profile.second.count();
+
+    l.append(d);
+  }
+  return l;
+}
+
 template <typename Backend>
 void FeedPipeline(Pipeline *p, const string &name, py::list list, cudaStream_t stream,
                   bool sync = false, bool use_copy_kernel = false) {
@@ -1319,6 +1335,11 @@ PYBIND11_MODULE(backend_impl, m) {
         [](Pipeline *p) {
           auto ret = p->GetExecutorMeta();
           return ExecutorMetaToDict(ret);
+        })
+    .def("profile_statistics",
+        [](Pipeline *p) {
+          auto ret = p->GetProfileData();
+          return ProfileDataToDict(ret);
         })
     .def("SetQueueSizes",
         [](Pipeline *p, int cpu_size, int gpu_size) {

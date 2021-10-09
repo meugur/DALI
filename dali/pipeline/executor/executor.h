@@ -16,6 +16,7 @@
 #define DALI_PIPELINE_EXECUTOR_EXECUTOR_H_
 
 #include <atomic>
+#include <chrono>
 #include <map>
 #include <memory>
 #include <queue>
@@ -54,6 +55,7 @@ struct DLL_PUBLIC ExecutorMeta {
   size_t max_reserved;
 };
 using ExecutorMetaMap = std::unordered_map<std::string, std::vector<ExecutorMeta>>;
+using ProfileData = std::unordered_map<std::string, std::pair<int, std::chrono::duration<double>>>;
 
 namespace detail {
 // This is stream callback used on GPU stream to indicate that GPU work for this
@@ -80,6 +82,7 @@ class DLL_PUBLIC ExecutorBase {
   DLL_PUBLIC virtual void SetCompletionCallback(ExecutorCallback cb) = 0;
   DLL_PUBLIC virtual void EnableMemoryStats(bool enable_memory_stats = false) = 0;
   DLL_PUBLIC virtual ExecutorMetaMap GetExecutorMeta() = 0;
+  DLL_PUBLIC virtual ProfileData GetProfileData() = 0;
 
  protected:
   // virtual to allow the TestPruneWholeGraph test in gcc
@@ -117,6 +120,12 @@ class DLL_PUBLIC Executor : public ExecutorBase, public WorkspacePolicy, public 
     DALI_ENFORCE(max_batch_size_ > 0, "Max batch size must be greater than 0.");
 
     stage_queue_depths_ = QueuePolicy::GetQueueSizes(prefetch_queue_depth);
+  }
+
+  ProfileData op_times;
+
+  DLL_PUBLIC ProfileData GetProfileData() {
+    return op_times;
   }
 
   DLL_PUBLIC void EnableMemoryStats(bool enable_memory_stats = false) override {

@@ -356,6 +356,16 @@ Parameters
             raise RuntimeError("Pipeline must be built first.")
         return self._pipe.executor_statistics()
 
+
+    def profile_statistics(self):
+        """
+        Returns profile statistics pertaining to operators
+        """
+        if not self._built:
+            raise RuntimeError("Pipeline must be built first.")
+        return self._pipe.profile_statistics()
+
+
     def reader_meta(self, name = None):
         """Returns provided reader metadata as a dictionary. If no name is provided if provides
         a dictionary with data for all readers as {reader_name : meta}
