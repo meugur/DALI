@@ -52,9 +52,12 @@ bool CropMirrorNormalize<GPUBackend>::SetupImpl(std::vector<OutputDesc> &output_
 
 template<>
 void CropMirrorNormalize<GPUBackend>::RunImpl(DeviceWorkspace &ws) {
+  const auto start = std::chrono::high_resolution_clock::now();
+
   const auto &input = ws.InputRef<GPUBackend>(0);
   auto &output = ws.OutputRef<GPUBackend>(0);
   output.SetLayout(output_layout_);
+
   int ndim = input.shape().sample_dim();
   TYPE_SWITCH(input_type_, type2id, InputType, CMN_IN_TYPES, (
     TYPE_SWITCH(output_type_, type2id, OutputType, CMN_OUT_TYPES, (
@@ -70,6 +73,18 @@ void CropMirrorNormalize<GPUBackend>::RunImpl(DeviceWorkspace &ws) {
       ), DALI_FAIL(make_string("Not supported number of dimensions:", ndim));); // NOLINT
     ), DALI_FAIL(make_string("Not supported output type:", output_type_));); // NOLINT
   ), DALI_FAIL(make_string("Not supported input type:", input_type_));); // NOLINT
+
+  const auto end = std::chrono::high_resolution_clock::now();
+
+  // Profile
+  auto ntensors = output.ntensor();
+  for (int i = 0; i < static_cast<int>(ntensors); i++) {
+    auto op_times = input.GetOpTimes(i);
+    op_times["CropMirrorNormalizeGPU"] = std::make_pair(start, end);
+
+    output.SetOpTimes(i, op_times);
+    output.SetSourceInfo(i, input.GetSourceInfo(i));
+  }
 }
 
 DALI_REGISTER_OPERATOR(CropMirrorNormalize, CropMirrorNormalize<GPUBackend>, GPU);

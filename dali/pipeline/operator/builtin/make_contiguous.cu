@@ -12,12 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <utility>
 #include "dali/core/nvtx.h"
 #include "dali/pipeline/operator/builtin/make_contiguous.h"
 
 namespace dali {
 
 void MakeContiguousMixed::Run(MixedWorkspace &ws) {
+  const auto start = std::chrono::high_resolution_clock::now();
+
   const auto& input = ws.template InputRef<CPUBackend>(0);
   int sample_dim = input[0].shape().sample_dim();
   size_t batch_size = input.ntensor();
@@ -44,6 +47,20 @@ void MakeContiguousMixed::Run(MixedWorkspace &ws) {
       output.Copy(input, ws.stream());
   }
   coalesced = true;
+
+  const auto end = std::chrono::high_resolution_clock::now();
+
+  // Profile
+  auto curr_batch_size = ws.GetInputBatchSize(0);
+  for (int i = 0; i < curr_batch_size; i++) {
+    const auto &in = ws.Input<CPUBackend>(0, i);
+
+    auto op_times = in.GetOpTimes();
+    op_times["MakeContiguousMixed"] = std::make_pair(start, end);
+
+    output.SetOpTimes(i, op_times);
+    output.SetSourceInfo(i, in.GetSourceInfo());
+  }
 }
 
 DALI_REGISTER_OPERATOR(MakeContiguous, MakeContiguousMixed, Mixed);

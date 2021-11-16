@@ -16,9 +16,17 @@
 #define DALI_PIPELINE_DATA_META_H_
 
 #include <string>
+#include <chrono>
+#include <utility>
+#include <unordered_map>
 #include "dali/pipeline/data/types.h"
 
 namespace dali {
+
+using OpTimes = std::unordered_map<std::string,
+      std::pair<
+          std::chrono::high_resolution_clock::time_point,
+          std::chrono::high_resolution_clock::time_point>>;
 
 class DALIMeta {
  public:
@@ -51,7 +59,16 @@ class DALIMeta {
     return skip_sample_;
   }
 
+  inline OpTimes GetOpTimes() const {
+    return op_times_;
+  }
+
+  inline void SetOpTimes(OpTimes &op_times) {
+    op_times_ = op_times;
+  }
+
  private:
+  OpTimes op_times_;
   TensorLayout layout_;
   std::string source_info_;
   bool skip_sample_ = false;

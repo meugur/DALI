@@ -52,6 +52,8 @@ void Resize<CPUBackend>::InitializeBackend() {
 
 template <>
 void Resize<CPUBackend>::RunImpl(HostWorkspace &ws) {
+  const auto start = std::chrono::high_resolution_clock::now();
+
   const auto &input = ws.InputRef<CPUBackend>(0);
   auto &output = ws.OutputRef<CPUBackend>(0);
 
@@ -69,6 +71,21 @@ void Resize<CPUBackend>::RunImpl(HostWorkspace &ws) {
     auto attr_view = view<int, 1>(attr_out);
     SaveAttrs(attr_view, input.shape());
   }
+
+  const auto end = std::chrono::high_resolution_clock::now();
+
+  // Profile
+  auto curr_batch_size = ws.GetInputBatchSize(0);
+  for (int i = 0; i < curr_batch_size; ++i) {
+    const auto &in = ws.Input<CPUBackend>(0, i);
+    auto &out = ws.Output<CPUBackend>(0, i);
+
+    auto op_times = in.GetOpTimes();
+    op_times["ResizeCPU"] = std::make_pair(start, end);
+
+    out.SetOpTimes(op_times);
+    out.SetSourceInfo(in.GetSourceInfo());
+  }
 }
 
 DALI_REGISTER_OPERATOR(Resize, Resize<CPUBackend>, CPU);
@@ -82,6 +99,8 @@ void Resize<GPUBackend>::InitializeBackend() {
 
 template<>
 void Resize<GPUBackend>::RunImpl(DeviceWorkspace &ws) {
+  const auto start = std::chrono::high_resolution_clock::now();
+
   const auto &input = ws.Input<GPUBackend>(0);
   auto &output = ws.Output<GPUBackend>(0);
 
@@ -102,6 +121,18 @@ void Resize<GPUBackend>::RunImpl(DeviceWorkspace &ws) {
     auto attr_view = view<int, 1>(attr_staging_);
     SaveAttrs(attr_view, input.shape());
     attr_out.Copy(attr_staging_, ws.stream());
+  }
+
+  const auto end = std::chrono::high_resolution_clock::now();
+
+  // Profile
+  auto ntensors = output.ntensor();
+  for (int i = 0; i < static_cast<int>(ntensors); i++) {
+    auto op_times = input.GetOpTimes(i);
+    op_times["ResizeGPU"] = std::make_pair(start, end);
+
+    output.SetOpTimes(i, op_times);
+    output.SetSourceInfo(i, input.GetSourceInfo(i));
   }
 }
 

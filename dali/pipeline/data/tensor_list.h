@@ -559,6 +559,14 @@ class DLL_PUBLIC TensorList : public Buffer<Backend> {
     meta_[idx].SetSourceInfo(source_info);
   }
 
+  inline OpTimes GetOpTimes(int idx) const {
+    return meta_[idx].GetOpTimes();
+  }
+
+  inline void SetOpTimes(int idx, OpTimes &op_times) {
+    meta_[idx].SetOpTimes(op_times);
+  }
+
   inline TensorLayout GetLayout() const {
     // Layout is enforced to be the same across all the samples
     return layout_;

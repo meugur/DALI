@@ -266,10 +266,13 @@ class _DaliBaseIterator(object):
         if self._reader_name or self._size != -1:
             for out in outs:
                 for o in out:
-                    batch_len = len(o)
-                    assert self.batch_size == batch_len, \
-                        "Variable batch size is not supported by the iterator when reader_name is " + \
-                        "provided or iterator size is set explicitly"
+                    for oo in o:
+                        if isinstance(oo, dict):
+                            continue
+                        batch_len = len(oo)
+                        assert self.batch_size == batch_len, \
+                            "Variable batch size is not supported by the iterator when " + \
+                            "reader_name is provided or iterator size is set explicitly"
 
     def _end_iteration(self):
         if self._auto_reset:

@@ -17,6 +17,7 @@
 
 #include <utility>
 #include <string>
+#include <chrono>
 #include <vector>
 #include "dali/operators/reader/reader_op.h"
 #include "dali/operators/reader/loader/file_label_loader.h"
@@ -32,6 +33,8 @@ class FileReader : public DataReader<CPUBackend, ImageLabelWrapper> {
   }
 
   void RunImpl(SampleWorkspace &ws) override {
+    const auto start = std::chrono::high_resolution_clock::now();
+
     const int idx = ws.data_idx();
 
     const auto& image_label = GetSample(idx);
@@ -49,6 +52,13 @@ class FileReader : public DataReader<CPUBackend, ImageLabelWrapper> {
     std::memcpy(image_output.raw_mutable_data(),
                 image_label.image.raw_data(),
                 image_size);
+
+    const auto end = std::chrono::high_resolution_clock::now();
+
+    OpTimes op_times;
+    op_times["readers__File"] = std::make_pair(start, end);
+
+    image_output.SetOpTimes(op_times);
     image_output.SetSourceInfo(image_label.image.GetSourceInfo());
 
     label_output.mutable_data<int>()[0] = image_label.label;

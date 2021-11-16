@@ -880,6 +880,8 @@ class nvJPEGDecoder : public Operator<MixedBackend>, CachedDecoderImpl {
   }
 
   void ProcessImages(MixedWorkspace &ws) {
+    const auto start = std::chrono::high_resolution_clock::now();
+
     auto &output = ws.Output<GPUBackend>(0);
     TypeInfo type = TypeTable::GetTypeInfoFromStatic<uint8_t>();
     output.set_type(type);
@@ -917,6 +919,20 @@ class nvJPEGDecoder : public Operator<MixedBackend>, CachedDecoderImpl {
     CUDA_CALL(cudaEventRecord(nvjpeg2k_decode_event_, nvjpeg2k_cu_stream_));
     CUDA_CALL(cudaStreamWaitEvent(ws.stream(), nvjpeg2k_decode_event_, 0));
 #endif  // NVJPEG2K_ENABLED
+
+    const auto end = std::chrono::high_resolution_clock::now();
+
+    // Profile
+    auto curr_batch_size = ws.GetInputBatchSize(0);
+    for (int i = 0; i < curr_batch_size; i++) {
+      const auto &in = ws.Input<CPUBackend>(0, i);
+
+      auto op_times = in.GetOpTimes();
+      op_times["decoders__Image__nvJPEGDecoder"] = std::make_pair(start, end);
+
+      output.SetOpTimes(i, op_times);
+      output.SetSourceInfo(i, in.GetSourceInfo());
+    }
   }
 
   inline int GetNextBufferIndex(int thread_id) {

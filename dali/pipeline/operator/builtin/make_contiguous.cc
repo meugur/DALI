@@ -17,6 +17,8 @@
 namespace dali {
 
 void MakeContiguousCPU::RunImpl(HostWorkspace &ws) {
+  const auto start = std::chrono::high_resolution_clock::now();
+
   auto &input = ws.template InputRef<CPUBackend>(0);
   auto &output = ws.template OutputRef<CPUBackend>(0);
   int batch_size = input.ntensor();
@@ -32,6 +34,20 @@ void MakeContiguousCPU::RunImpl(HostWorkspace &ws) {
     }, shapes.tensor_size(sample_id));
   }
   thread_pool.RunAll();
+
+  const auto end = std::chrono::high_resolution_clock::now();
+
+  // Profile
+  for (int i = 0; i < batch_size; i++) {
+    const auto &in = ws.Input<CPUBackend>(0, i);
+    auto &out = ws.Output<GPUBackend>(0, i);
+
+    auto op_times = in.GetOpTimes();
+    op_times["MakeContiguousCPU"] = std::make_pair(start, end);
+
+    out.SetOpTimes(op_times);
+    out.SetSourceInfo(in.GetSourceInfo());
+  }
 }
 
 DALI_REGISTER_OPERATOR(MakeContiguous, MakeContiguousCPU, CPU);

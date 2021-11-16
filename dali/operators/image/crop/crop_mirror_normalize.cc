@@ -103,6 +103,8 @@ bool CropMirrorNormalize<CPUBackend>::SetupImpl(std::vector<OutputDesc> &output_
 
 template <>
 void CropMirrorNormalize<CPUBackend>::RunImpl(HostWorkspace &ws) {
+  const auto start = std::chrono::high_resolution_clock::now();
+
   const auto &input = ws.InputRef<CPUBackend>(0);
   auto &output = ws.OutputRef<CPUBackend>(0);
   output.SetLayout(output_layout_);
@@ -130,6 +132,21 @@ void CropMirrorNormalize<CPUBackend>::RunImpl(HostWorkspace &ws) {
       ), DALI_FAIL(make_string("Not supported number of dimensions:", ndim));); // NOLINT
     ), DALI_FAIL(make_string("Not supported output type:", output_type_));); // NOLINT
   ), DALI_FAIL(make_string("Not supported input type:", input_type_));); // NOLINT
+
+  const auto end = std::chrono::high_resolution_clock::now();
+
+  // Profile
+  auto curr_batch_size = ws.GetInputBatchSize(0);
+  for (int i = 0; i < curr_batch_size; ++i) {
+    const auto &in = ws.Input<CPUBackend>(0, i);
+    auto &out = ws.Output<CPUBackend>(0, i);
+
+    auto op_times = in.GetOpTimes();
+    op_times["CropMirrorNormalizeCPU"] = std::make_pair(start, end);
+
+    out.SetOpTimes(op_times);
+    out.SetSourceInfo(in.GetSourceInfo());
+  }
 }
 
 }  // namespace dali

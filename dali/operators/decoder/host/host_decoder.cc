@@ -15,12 +15,15 @@
 #include <opencv2/opencv.hpp>
 #include <tuple>
 #include <memory>
+#include <utility>
 #include "dali/image/image_factory.h"
 #include "dali/operators/decoder/host/host_decoder.h"
 
 namespace dali {
 
 void HostDecoder::RunImpl(SampleWorkspace &ws) {
+  const auto start = std::chrono::high_resolution_clock::now();
+
   const auto &input = ws.Input<CPUBackend>(0);
   auto &output = ws.Output<CPUBackend>(0);
   auto file_name = input.GetSourceInfo();
@@ -44,6 +47,16 @@ void HostDecoder::RunImpl(SampleWorkspace &ws) {
   const auto shape = img->GetShape();
   output.Resize(shape);
   output.SetLayout("HWC");
+
+  const auto end = std::chrono::high_resolution_clock::now();
+
+  // Profile
+  auto op_times = input.GetOpTimes();
+  op_times["decoders__Image__HostDecoder"] = std::make_pair(start, end);
+
+  output.SetOpTimes(op_times);
+  output.SetSourceInfo(input.GetSourceInfo());
+
   unsigned char *out_data = output.mutable_data<unsigned char>();
   std::memcpy(out_data, decoded.get(), volume(shape));
 }

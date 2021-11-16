@@ -200,6 +200,19 @@ class DALIGenericIterator(_DaliBaseIterator):
         # Gather outputs
         outputs = self._get_outputs()
 
+        profile = []
+        new_outputs = []
+        if self._reader_name or self._size != -1:
+            for out in outputs:
+                values = []
+                for o in out:
+                    values.append(o[0])
+                    for oo in o:
+                        if isinstance(oo, dict):
+                            profile.append(oo)
+                new_outputs.append(tuple(values))
+            outputs = new_outputs
+
         for i in range(self._num_gpus):
             dev_id = self._pipes[i].device_id
             # initialize dict for all output categories
@@ -289,7 +302,9 @@ class DALIGenericIterator(_DaliBaseIterator):
                 for category in self._output_categories:
                     output[-1][category] = output[-1][category][0:data_fromlastGPU]
                 return output
-
+        if len(self._data_batches) > 0:
+            if isinstance(self._data_batches[0], dict):
+                self._data_batches[0]["profile"] = profile
         return self._data_batches
 
 class DALIClassificationIterator(DALIGenericIterator):

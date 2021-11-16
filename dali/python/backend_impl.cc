@@ -1374,9 +1374,44 @@ PYBIND11_MODULE(backend_impl, m) {
           py::tuple outs(ws.NumOutput());
           for (int i = 0; i < ws.NumOutput(); ++i) {
             if (ws.OutputIsType<CPUBackend>(i)) {
-              outs[i] = ws.OutputPtr<CPUBackend>(i);
+              auto out = ws.OutputPtr<CPUBackend>(i);
+
+              py::dict profile;
+              auto ntensors = (*out).ntensor();
+              for (int j = 0; j < static_cast<int>(ntensors); ++j) {
+                  py::dict times;
+                  for (auto &kv : (*out).GetOpTimes(j)) {
+                    times[kv.first.c_str()] = py::make_tuple(
+                        kv.second.first.time_since_epoch().count(),
+                        kv.second.second.time_since_epoch().count());
+                  }
+                  auto filename = (*out).GetSourceInfo(j);
+                  if (filename == "") {
+                    filename = std::to_string(j);
+                  }
+                  profile[filename.c_str()] = times;
+              }
+              outs[i] = py::make_tuple(out, profile);
+
             } else {
-              outs[i] = ws.OutputPtr<GPUBackend>(i);
+              auto out = ws.OutputPtr<GPUBackend>(i);
+
+              py::dict profile;
+              auto ntensors = (*out).ntensor();
+              for (int j = 0; j < static_cast<int>(ntensors); ++j) {
+                  py::dict times;
+                  for (auto &kv : (*out).GetOpTimes(j)) {
+                    times[kv.first.c_str()] = py::make_tuple(
+                        kv.second.first.time_since_epoch().count(),
+                        kv.second.second.time_since_epoch().count());
+                  }
+                  auto filename = (*out).GetSourceInfo(j);
+                  if (filename == "") {
+                    filename = std::to_string(j);
+                  }
+                  profile[filename.c_str()] = times;
+              }
+              outs[i] = py::make_tuple(out, profile);
             }
           }
           return outs;

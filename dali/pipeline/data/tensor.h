@@ -539,6 +539,14 @@ class Tensor : public Buffer<Backend> {
     meta_.SetSourceInfo(source_info);
   }
 
+  inline OpTimes GetOpTimes() const {
+    return meta_.GetOpTimes();
+  }
+
+  inline void SetOpTimes(OpTimes &op_times) {
+    meta_.SetOpTimes(op_times);
+  }
+
   inline void SetSkipSample(bool skip_sample) {
     meta_.SetSkipSample(skip_sample);
   }
